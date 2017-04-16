@@ -32,13 +32,12 @@ import java.util.*;
 /**
  *
  */
-public final class RouteTree implements
-		Comparable<RouteTree>, Iterable<RouteTree> {
-	private RouteTree sourceTree; // Do I want bidirectional checks?
+public final class RouteTree<data_t> implements Iterable<RouteTree> {
+	private RouteTree<data_t> sourceTree; // Do I want bidirectional checks?
 	private final Wire wire;
 	private Connection connection;
-	private int cost; // for routers
-	private final Collection<RouteTree> sinkTrees = new ArrayList<>(1);
+	private data_t data;
+	private final Collection<RouteTree<data_t>> sinkTrees = new ArrayList<>(1);
 
 	public RouteTree(Wire wire) {
 		this.wire = wire;
@@ -53,28 +52,28 @@ public final class RouteTree implements
 		return wire;
 	}
 
-	public int getCost() {
-		return cost;
+	public data_t getData() {
+		return data;
 	}
 
-	public void setCost(int cost) {
-		this.cost = cost;
+	public void setData(data_t data) {
+		this.data = data;
 	}
 
 	public Connection getConnection() {
 		return connection;
 	}
 
-	public void setConnection(Connection connection) {
+	private void setConnection(Connection connection) {
 		this.connection = connection;
 	}
 
-	public RouteTree getSourceTree() {
+	public RouteTree<data_t> getSourceTree() {
 		return sourceTree;
 	}
 
-	public RouteTree getFirstSource() {
-		RouteTree parent = this;
+	public RouteTree<data_t> getFirstSource() {
+		RouteTree<data_t> parent = this;
 		while (parent.isSourced())
 			parent = parent.getSourceTree();
 		return parent;
@@ -84,12 +83,16 @@ public final class RouteTree implements
 		return sourceTree != null;
 	}
 
-	public void setSourceTree(RouteTree sourceTree) {
+	private void setSourceTree(RouteTree<data_t> sourceTree) {
 		this.sourceTree = sourceTree;
 	}
 
-	public Collection<RouteTree> getSinkTrees() {
+	public Collection<RouteTree<data_t>> getSinkTrees() {
 		return sinkTrees;
+	}
+
+	private void addSinkTree(RouteTree<data_t> sinkTree) {
+		sinkTrees.add(sinkTree);
 	}
 	
 	/**
@@ -119,14 +122,14 @@ public final class RouteTree implements
 		return terminalConnections.isEmpty() ? null : terminalConnections.iterator().next().getBelPin();
 	}
 
-	public RouteTree addConnection(Connection c) {
-		RouteTree endTree = new RouteTree(c.getSinkWire(), c);
+	public RouteTree<data_t> addConnection(Connection c) {
+		RouteTree<data_t> endTree = new RouteTree<data_t>(c.getSinkWire(), c);
 		endTree.setSourceTree(this);
 		sinkTrees.add(endTree);
 		return endTree;
 	}
 
-	public RouteTree addConnection(Connection c, RouteTree sink) {
+	public RouteTree<data_t> addConnection(Connection c, RouteTree<data_t> sink) {
 		if (sink.getSourceTree() != null)
 			throw new Exceptions.DesignAssemblyException("Sink tree already sourced");
 		if (!c.getSinkWire().equals(sink.getWire()))
@@ -139,8 +142,8 @@ public final class RouteTree implements
 	}
 
 	public void removeConnection(Connection c) {
-		for (Iterator<RouteTree> it = sinkTrees.iterator(); it.hasNext(); ) {
-			RouteTree sink = it.next();
+		for (Iterator<RouteTree<data_t>> it = sinkTrees.iterator(); it.hasNext(); ) {
+			RouteTree<data_t> sink = it.next();
 			if (sink.getConnection().equals(c)) {
 				sink.setSourceTree(null);
 				it.remove();
@@ -153,7 +156,7 @@ public final class RouteTree implements
 	}
 
 	private List<PIP> getAllPips(List<PIP> pips) {
-		for (RouteTree rt : sinkTrees) {
+		for (RouteTree<data_t> rt : sinkTrees) {
 			if (rt.getConnection().isPip())
 				pips.add(rt.getConnection().getPip());
 			rt.getAllPips(pips);
@@ -161,46 +164,44 @@ public final class RouteTree implements
 		return pips;
 	}
 
-	public RouteTree deepCopy() {
-		RouteTree copy = new RouteTree(wire, connection);
-		sinkTrees.forEach(rt -> copy.sinkTrees.add(rt.deepCopy()));
-		copy.sinkTrees.forEach(rt -> rt.sourceTree = this);
+	public RouteTree<data_t> deepCopy() {
+		RouteTree<data_t> copy = new RouteTree<data_t>(wire, connection);
+		sinkTrees.forEach(rt ->{
+			RouteTree<data_t> tree = rt.deepCopy();
+			tree.setSourceTree(copy);
+			copy.addSinkTree(tree);
+		});
 		return copy;
 	}
 
-	@Override
-	public int compareTo(RouteTree o) {
-		return Integer.compare(cost, o.cost);
-	}
-
-	public boolean prune(RouteTree terminal) {
-		Set<RouteTree> toPrune = new HashSet<>();
+	public boolean prune(RouteTree<data_t> terminal) {
+		Set<RouteTree<data_t>> toPrune = new HashSet<>();
 		toPrune.add(terminal);
 		return prune(toPrune);
 	}
 	
-	public boolean prune(Set<RouteTree> terminals) {
+	public boolean prune(Set<RouteTree<data_t>> terminals) {
 		return pruneChildren(terminals);
 	}
 
-	private boolean pruneChildren(Set<RouteTree> terminals) {
+	private boolean pruneChildren(Set<RouteTree<data_t>> terminals) {
 		sinkTrees.removeIf(rt -> !rt.pruneChildren(terminals));
 		return !sinkTrees.isEmpty() || terminals.contains(this);
 	}
 	
 	@Override
 	public Iterator<RouteTree> iterator() {
-		return prefixIterator();
+		return preorderIterator();
 	}
 
-	public Iterator<RouteTree> prefixIterator() {
-		return new PrefixIterator();
+	public Iterator<RouteTree> preorderIterator() {
+		return new PreorderIterator();
 	}
 
-	private class PrefixIterator implements Iterator<RouteTree> {
+	private class PreorderIterator implements Iterator<RouteTree> {
 		private final Stack<RouteTree> stack;
 
-		PrefixIterator() {
+		PreorderIterator() {
 			this.stack = new Stack<>();
 			this.stack.push(RouteTree.this);
 		}

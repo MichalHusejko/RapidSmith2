@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 import edu.byu.ece.rapidSmith.design.subsite.CellNet;
 import edu.byu.ece.rapidSmith.design.subsite.RouteTree;
+import edu.byu.ece.rapidSmith.device.creation.ExtendedDeviceInfo;
 import edu.byu.ece.rapidSmith.device.Connection;
 import edu.byu.ece.rapidSmith.device.SitePin;
 import edu.byu.ece.rapidSmith.device.Tile;
@@ -24,9 +25,9 @@ import edu.byu.ece.rapidSmith.device.Wire;
  */
 public class AStarRouter {
 	
-	private final Comparator<RouteTree> routeTreeComparator;
-	private PriorityQueue<RouteTree> priorityQueue;
-	private Map<RouteTree, Set<Wire>> usedConnectionMap;
+	private final Comparator<RouteTree<Integer>> routeTreeComparator;
+	private PriorityQueue<RouteTree<Integer>> priorityQueue;
+	private Map<RouteTree<Integer>, Set<Wire>> usedConnectionMap;
 	private Tile targetTile;
 	private Tile startTile;
 	 
@@ -36,12 +37,12 @@ public class AStarRouter {
 	public AStarRouter() {		
 		
 		// Cost function for comparing RouteTree objects
-		routeTreeComparator = new Comparator<RouteTree>() {
+		routeTreeComparator = new Comparator<RouteTree<Integer>>() {
 			@Override
-			public int compare(RouteTree one, RouteTree two) {
+			public int compare(RouteTree<Integer> one, RouteTree<Integer> two) {
 				// cost = route tree cost (# of wires traversed) + distance to the target + distance from the source
-				Integer costOne = one.getCost() + manhattenDistance(one, targetTile) + manhattenDistance(one, startTile);
-				Integer costTwo = two.getCost() + manhattenDistance(two, targetTile) + manhattenDistance(two, startTile);
+				Integer costOne = one.getData().intValue() + manhattenDistance(one, targetTile) + manhattenDistance(one, startTile);
+				Integer costTwo = two.getData().intValue() + manhattenDistance(two, targetTile) + manhattenDistance(two, startTile);
 				
 				return costOne.compareTo(costTwo);
 			}
@@ -56,11 +57,11 @@ public class AStarRouter {
 	 * @param net {@link CellNet} to route
 	 * @return The routed net in a {@link RouteTree} data structure
 	 */
-	public RouteTree routeNet(CellNet net) {
+	public RouteTree<Integer> routeNet(CellNet net) {
 		
 		// Initialize the route
-		RouteTree start = initializeRoute(net);
-		Set<RouteTree> terminals = new HashSet<>();
+		RouteTree<Integer> start = initializeRoute(net);
+		Set<RouteTree<Integer>> terminals = new HashSet<>();
 		
 		// Find the pins that need to be routed for the net
 		Iterator<SitePin> sinksToRoute = getSinksToRoute(net).iterator();
@@ -80,7 +81,7 @@ public class AStarRouter {
 			while (!routeFound) {
 				
 				// Grab the lowest cost route from the queue
-				RouteTree current = priorityQueue.poll();
+				RouteTree<Integer> current = priorityQueue.poll();
 				
 				// Get a set of sink wires from the current RouteTree that already exist in the queue
 				// we don't need to add them again
@@ -93,7 +94,7 @@ public class AStarRouter {
 					
 					// Solution has been found
 					if (sinkWire.equals(targetWire)) {
-						RouteTree sinkTree = current.addConnection(connection); 
+						RouteTree<Integer> sinkTree = current.addConnection(connection);
 						sinkTree = finializeRoute(sinkTree);
 						terminals.add(sinkTree);
 						routeFound = true;
@@ -102,8 +103,8 @@ public class AStarRouter {
 					
 					// Only create and add a new RouteTree object if it doesn't already exist in the queue
 					if (!existingBranches.contains(sinkWire)) {
-						RouteTree sinkTree = current.addConnection(connection);
-						sinkTree.setCost(current.getCost() + 1);
+						RouteTree<Integer> sinkTree = current.addConnection(connection);
+						sinkTree.setData(new Integer(current.getData().intValue() + 1));
 						priorityQueue.add(sinkTree);
 						existingBranches.add(sinkWire);
 					} 
@@ -123,9 +124,9 @@ public class AStarRouter {
 	 * Creates an initial {@link RouteTree} object for the specified {@link CellNet}.
 	 * This is the beginning of the physical route. 
 	 */
-	private RouteTree initializeRoute(CellNet net) {
+	private RouteTree<Integer> initializeRoute(CellNet net) {
 		Wire startWire = net.getSourceSitePin().getExternalWire();
-		RouteTree start = new RouteTree(startWire);
+		RouteTree<Integer> start = new RouteTree<Integer>(startWire);
 		startTile = startWire.getTile();
 		usedConnectionMap.clear();
 		return start;
@@ -134,12 +135,12 @@ public class AStarRouter {
 	/**
 	 * Update the costs of the RouteTrees in the priority queue for the new target wire
 	 */
-	private void resortPriorityQueue (RouteTree start) {
+	private void resortPriorityQueue (RouteTree<Integer> start) {
 		
 		// if the queue has not been created, create it, otherwise create a new queue double the size
 		priorityQueue = (priorityQueue == null) ? 
-				new PriorityQueue<RouteTree>(routeTreeComparator) :
-				new PriorityQueue<RouteTree>(priorityQueue.size()*2, routeTreeComparator);
+				new PriorityQueue<RouteTree<Integer>>(routeTreeComparator) :
+				new PriorityQueue<RouteTree<Integer>>(priorityQueue.size()*2, routeTreeComparator);
 		
 		// add the RouteTree objects to the new queue so costs will be updated
 		start.iterator().forEachRemaining(rt -> priorityQueue.add(rt));
@@ -164,7 +165,7 @@ public class AStarRouter {
 	 * @param compareTile {@link Tile} 
 	 * @return The Manhattan distance between {@code tree} and {@code compareTile}
 	 */
-	private int manhattenDistance(RouteTree tree, Tile compareTile) {
+	private int manhattenDistance(RouteTree<Integer> tree, Tile compareTile) {
 		Tile currentTile = tree.getWire().getTile();
 		return Math.abs(currentTile.getColumn() - compareTile.getColumn() ) + Math.abs(currentTile.getRow() - compareTile.getRow()); 
 	}
@@ -177,7 +178,7 @@ public class AStarRouter {
 	 * @param route {@link RouteTree} representing the target wire that has been routed to
 	 * @return the final {@link RouteTree}, which connects to a {@link SitePin}
 	 */
-	private RouteTree finializeRoute(RouteTree route) {
+	private RouteTree<Integer> finializeRoute(RouteTree<Integer> route) {
 		
 		while (route.getWire().getPinConnections().isEmpty()) {
 			assert (route.getWire().getWireConnections().size() == 1);

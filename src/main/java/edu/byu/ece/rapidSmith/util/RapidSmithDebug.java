@@ -59,11 +59,10 @@ public final class RapidSmithDebug {
 	private static void printRouteTree(RouteTree rt, int level) {
 		Wire w = rt.getWire();
 		System.out.println(w.getTile() + "/" + w.getWireName() + "--> " + level);
-			
-		level++;
-		for(RouteTree r: rt.getSinkTrees()) {
-			printRouteTree(r, level);
-		}
+
+		rt.getSinkTrees().forEach(r -> {
+			printRouteTree((RouteTree)r, level+1);
+		});
 	}
 	
 	/**
@@ -104,10 +103,9 @@ public final class RapidSmithDebug {
 		
 		for(RouteTree rt : routeTrees) {
 
-			for (RouteTree routeTree : rt.getFirstSource()) {
-				Wire w = routeTree.getWire();
-				cmd += w.getTile().getName() + "/" + w.getWireName() + " ";
-			}
+			RouteTree routeTree = rt.getFirstSource();
+			Wire w = routeTree.getWire();
+			cmd += w.getTile().getName() + "/" + w.getWireName() + " ";
 		}
 		cmd += "}]";
 		

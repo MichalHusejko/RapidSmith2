@@ -230,7 +230,7 @@ public class DotFilePrinter {
 	 * Creates a DOT string of the specified {@link RouteTree} object.
 	 * The resulting DOT graph is given a default name of "RouteTree"
 	 * 
-	 * @param tree {@link RouteTree} to print
+	 * @param route {@link RouteTree} to print
 	 * @return A DOT string
 	 */
 	public static String getRouteTreeDotString(RouteTree route) {
@@ -250,7 +250,7 @@ public class DotFilePrinter {
 	/**
 	 * Creates a DOT string of the specified {@link RouteTree} object.
 	 * 
-	 * @param tree {@link RouteTree} to print
+	 * @param route {@link RouteTree} to print
 	 * @param name Name of the generated DOT graph.
 	 * @return A DOT string
 	 */
@@ -268,7 +268,7 @@ public class DotFilePrinter {
 		builder.append("digraph \"" + name + "\"{\n");
 				
 		// create the unique ID list for RouteTrees
-		route.iterator().forEachRemaining(rt -> nodeIds.put(rt, nodeIds.size()));
+		route.iterator().forEachRemaining(rt -> nodeIds.put((RouteTree)rt, nodeIds.size()));
 		
 		// print the node and edge information for the RouteTree
 		rtQueue.add(route);
@@ -280,11 +280,12 @@ public class DotFilePrinter {
 			
 			// only print edges if the route tree has any
 			if (!tmp.isLeaf()) {
-				for (RouteTree sink : tmp.getSinkTrees()) {
+				tmp.getSinkTrees().forEach(rt ->{
+					RouteTree sink = (RouteTree) rt;
 					String edgeColor = sink.getConnection().isPip() ? "red" : "black";
 					builder.append(String.format(" %d->%d [color=\"%s\"]\n", nodeIds.get(tmp), nodeIds.get(sink), edgeColor));
 					rtQueue.add(sink);
-				}
+				});
 			} 
 			else {
 				// TODO: add a node for site pins?
