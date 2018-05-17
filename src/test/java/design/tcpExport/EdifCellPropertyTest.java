@@ -3,13 +3,11 @@ package design.tcpExport;
 import edu.byu.ece.edif.core.EdifCell;
 import edu.byu.ece.edif.core.EdifCellInstance;
 import edu.byu.ece.edif.core.EdifEnvironment;
+import edu.byu.ece.edif.core.EdifNet;
 import edu.byu.ece.edif.util.parse.EdifParser;
 import edu.byu.ece.edif.util.parse.ParseException;
 import edu.byu.ece.rapidSmith.RSEnvironment;
-import edu.byu.ece.rapidSmith.design.subsite.Cell;
-import edu.byu.ece.rapidSmith.design.subsite.CellDesign;
-import edu.byu.ece.rapidSmith.design.subsite.Property;
-import edu.byu.ece.rapidSmith.design.subsite.PropertyType;
+import edu.byu.ece.rapidSmith.design.subsite.*;
 import edu.byu.ece.rapidSmith.interfaces.vivado.EdifInterface;
 import edu.byu.ece.rapidSmith.interfaces.vivado.VivadoCheckpoint;
 import edu.byu.ece.rapidSmith.interfaces.vivado.VivadoInterface;
@@ -65,7 +63,7 @@ public class EdifCellPropertyTest {
          */
         File tmpFile = new File(testEdifPath.toString());
                 tmpFile.delete();
-        }
+    }
 
     /**Test to make sure output netlist.edf does not have DESIGN type properties*/
     @Test
@@ -87,7 +85,44 @@ public class EdifCellPropertyTest {
         catch (ParseException e) {
             e.printStackTrace();
         }
+    }
 
+    @Test
+    @DisplayName("netPropertyTest USER Property Test")
+    public void netUserPropertyTest() throws IOException {
+        CellNet net = design.getNet("ld_IBUF");
+        net.getProperties().add(new Property("userPropKey", PropertyType.USER, "userPropVal"));
+
+        try {
+            EdifInterface.writeEdif(testEdifPath.toString(), design);
+            EdifEnvironment env = EdifParser.translate(testEdifPath.toString());
+            EdifCell topLevelCell = env.getTopCell();
+            EdifNet edifNet = topLevelCell.getNet("ld_IBUF");
+            edu.byu.ece.edif.core.Property prop = edifNet.getProperty("userPropKey");
+            net.getProperties().remove("userPropKey");
+            assertNull(prop, "Property with USER type not removed.");
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    @DisplayName("netPropertyTest USER Property Test")
+    public void netEdifPropertyTest() throws IOException {
+        CellNet net = design.getNet("ld_IBUF");
+        net.getProperties().add(new Property("edifPropKey", PropertyType.EDIF, "edifPropVal"));
+
+        try {
+            EdifInterface.writeEdif(testEdifPath.toString(), design);
+            EdifEnvironment env = EdifParser.translate(testEdifPath.toString());
+            EdifCell topLevelCell = env.getTopCell();
+            EdifNet edifNet = topLevelCell.getNet("ld_IBUF");
+            edu.byu.ece.edif.core.Property prop = edifNet.getProperty("edifPropKey");
+            // net.getProperties().remove("edifPropKey");
+            assertNotNull(prop, "Property with EDIF type not included.");
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     /**Test to make sure output netlist.edf does not have USER type properties*/

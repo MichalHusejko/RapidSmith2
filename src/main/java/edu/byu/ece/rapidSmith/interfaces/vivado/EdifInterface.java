@@ -682,6 +682,9 @@ public final class EdifInterface {
 			
 			edifNet.addPortConnection(portRef);
 		}
+
+        // create an equivalent edif property for each RS2 property
+        edifNet.addPropertyList(createEdifPropertyList(cellNet.getProperties()));
 					
 		return edifNet;
 	}
@@ -745,18 +748,18 @@ public final class EdifInterface {
 		for (Property prop : properties) {
 			// The key and value of the property need sensible toString() methods when exporting to EDIF
 			// this function is for creating properties for printing only!
-			// TODO: make sure to inform the user of this 
-			if (prop.getType().equals(PropertyType.EDIF)){/**Only get PropertyType EDIF when creating EDIF propertyList*/
+			// TODO: make sure to inform the user of this
+			if (prop.getType().equals(PropertyType.EDIF)){
 				edu.byu.ece.edif.core.Property edifProperty;
 
 				Object value = prop.getValue();
 
 				if (value instanceof Boolean) {
-					edifProperty = new edu.byu.ece.edif.core.Property(prop.getKey().toString(), (Boolean) value);
+					edifProperty = new edu.byu.ece.edif.core.Property(prop.getKey(), (Boolean) value);
 				} else if (value instanceof Integer) {
-					edifProperty = new edu.byu.ece.edif.core.Property(prop.getKey().toString(), (Integer) value);
+					edifProperty = new edu.byu.ece.edif.core.Property(prop.getKey(), (Integer) value);
 				} else {
-					edifProperty = new edu.byu.ece.edif.core.Property(prop.getKey().toString(), prop.getValue().toString());
+					edifProperty = new edu.byu.ece.edif.core.Property(prop.getKey(), prop.getValue().toString());
 				}
 
 				edifProperties.addProperty(edifProperty);
