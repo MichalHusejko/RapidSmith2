@@ -334,8 +334,11 @@ public class FileTools {
 	/* Simple Device/WireEnumeration Load Methods & Helpers                              */
 	//===================================================================================//
 	public static Hessian2Input getCompactReader(Path filePath) throws IOException {
-		Hessian2Input his = new Hessian2Input(
-				new BufferedInputStream(Files.newInputStream(filePath)));
+		InputStream inputStream = Files.newInputStream(filePath);
+
+		BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+
+		Hessian2Input his = new Hessian2Input(bufferedInputStream);
 		his.setCloseStreamOnClose(true);
 		System.out.println("about to deflate");
 		return new Deflation().unwrap(his);
@@ -365,7 +368,7 @@ public class FileTools {
 		try {
 			return (Device) getCompactReader(filePath).readObject();
 		} catch (IOException e) {
-			System.out.println("IO Exception when loading device");
+			System.out.println("IOException:" + e.getMessage());
 			return null;
 		}
 	}
