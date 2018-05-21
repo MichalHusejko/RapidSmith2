@@ -378,6 +378,8 @@ public class FileTools {
 		try {
 			return (Device) getCompactReader(filePath).readObject();
 		} catch (IOException e) {
+			System.out.println("IOException:" + e.getMessage());
+			e.printStackTrace();
 			return null;
 		}
 	}
