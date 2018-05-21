@@ -337,6 +337,7 @@ public class FileTools {
 		Hessian2Input his = new Hessian2Input(
 				new BufferedInputStream(Files.newInputStream(filePath)));
 		his.setCloseStreamOnClose(true);
+		System.out.println("about to deflate");
 		return new Deflation().unwrap(his);
 
 	}
