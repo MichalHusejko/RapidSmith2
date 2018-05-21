@@ -1,19 +1,15 @@
 package edu.byu.ece.rapidSmith.examples;
 
-import java.io.IOException;
 import java.util.Collection;
-import java.util.stream.Stream;
+import java.util.Map;
 
 import edu.byu.ece.rapidSmith.device.*;
-import org.jdom2.JDOMException;
 
 import edu.byu.ece.rapidSmith.RSEnvironment;
 
 public class DeviceAnalyzer {
-	
-	private static Device device;
 
-	public static void main(String[] args) throws IOException, JDOMException {
+	public static void main(String[] args) {
 
 		if (args.length < 1) {
 			System.err.println("Usage: DeviceAnalyzer deviceName");
@@ -23,18 +19,25 @@ public class DeviceAnalyzer {
 		msg("Starting DeviceAnalyzer...\n");
 
 		// Load the device file
-		device = RSEnvironment.defaultEnv().getDevice(args[0]);
-		
+		Device device = RSEnvironment.defaultEnv().getDevice(args[0]);
+
+		System.out.println("Loaded the device");
+		System.out.println("Family: " + device.getFamily().name());
+		System.out.println(device.getColumns() + " columns");
+		System.out.println(device.getRows() + " rows");
+
+		Collection<Tile> tiles = device.getTiles();
+		System.out.println(tiles.size() + " tiles");
+
+		Map<String, Site> sites = device.getSites();
+		System.out.println(sites.size() + " sites");
+
 		// TODO: Create a getTilesOfType method in Device.java
 		// Print a CLB tile's wires
-		Stream<Tile> clbTiles = device.getTiles().stream().filter(tile -> tile.getType().equals(TileType.valueOf(device.getFamily(), "CLBLM_L")));
-		Tile clbTile = clbTiles.iterator().next();
-		printTileWires(clbTile);
+		printTileWires(device.getTile("CLBLM_L_X26Y68"));
 
 		// Print an INT tile's wires
-		Stream<Tile> intTiles = device.getTiles().stream().filter(tile -> tile.getType().equals(TileType.valueOf(device.getFamily(), "INT_L")));
-		Tile intTile = intTiles.iterator().next();
-		printTileWires(intTile);
+		printTileWires(device.getTile("INT_L_X26Y68"));
 	}
 	
 	/**
