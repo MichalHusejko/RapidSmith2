@@ -181,10 +181,13 @@ public class RSEnvironment {
 		}
 
 		device = FileTools.loadDevice(path);
-		if (device == null)
+		if (device == null) {
+			System.out.println("Device is null for some reason");
 			return null;
+		}
 
 		loadedDevices.put(canonicalName, new SoftReference<>(device));
+		System.out.println("Returning an actual device");
 		return device;
 	}
 

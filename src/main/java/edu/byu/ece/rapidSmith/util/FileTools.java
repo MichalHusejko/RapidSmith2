@@ -364,6 +364,7 @@ public class FileTools {
 		try {
 			return (Device) getCompactReader(filePath).readObject();
 		} catch (IOException e) {
+			System.out.println("IO Exception when loading device");
 			return null;
 		}
 	}
